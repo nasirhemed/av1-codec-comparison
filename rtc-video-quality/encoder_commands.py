@@ -16,7 +16,8 @@
 import os
 import subprocess
 import tempfile
-from binary_vars import *
+import binary_vars
+
 
 
 libvpx_threads = 4
@@ -259,7 +260,7 @@ def libvpx_tl_command(job, temp_dir):
     fps = int(clip['fps'] + 0.5)
 
     command = [
-        VPX_SVC_ENC_BIN,
+        binary_vars.VPX_SVC_ENC_BIN,
         clip['yuv_file'],
         outfile_prefix,
         job['codec'],
@@ -330,7 +331,7 @@ def libvpx_command(job, temp_dir):
     # respecting NTSC or other non-integer FPS formats here.
     fps = int(clip['fps'] + 0.5)
 
-    command = [VPX_ENC_BIN] + codec_params + common_params + [
+    command = [binary_vars.VPX_ENC_BIN] + codec_params + common_params + [
       '--fps=%d/1' % fps,
       '--target-bitrate=%d' % job['target_bitrates_kbps'][0],
       '--width=%d' % clip['width'],
@@ -355,7 +356,7 @@ def openh264_command(job, temp_dir):
     clip = job['clip']
 
     command = [
-      H264_ENC_BIN,
+      binary_vars.H264_ENC_BIN,
       '-rc', 1,
       '-denois', 0,
       '-scene', 0,
@@ -391,7 +392,7 @@ def yami_command(job, temp_dir):
     fps = int(clip['fps'] + 0.5)
 
     command = [
-      YAMI_ENC_BIN,
+      binary_vars.YAMI_ENC_BIN,
       '--rcmode', 'CBR',
       '--ipperiod', 1,
       '--intraperiod', 3000,
@@ -409,7 +410,7 @@ def yami_command(job, temp_dir):
 def get_encoder_command(encoder):
     encoders = [
         'aom-good', 'aom-rt', 'aom-all_intra', 'aom-offline', ## AOM CONFIGS
-        'rav1e-1pass', 'rav1e-rt', 'rav1e-all_intra', ## RAV1E CONFIGS TODO: FIXME
+        'rav1e-1pass', 'rav1e-rt', 'rav1e-all_intra', ## RAV1E CONFIGS
         'svt-1pass', 'svt-rt', 'svt-all_intra', ## SVT CONFIGS
         'openh264', ## OPENH264 CONFIGS
         'libvpx-rt', ## LIBVPX CONFIGS

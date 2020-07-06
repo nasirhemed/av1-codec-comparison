@@ -28,7 +28,7 @@ import threading
 import time
 
 from encoder_commands import *
-from binary_vars import *
+import binary_vars
 
 binary_absolute_paths = {}
 
@@ -213,11 +213,14 @@ def prepare_clips(args, temp_dir):
         os.close(fd)
 
         with open(os.devnull, 'w') as devnull:
-            subprocess.check_call(
-                ['ffmpeg', '-y', '-s', '%dx%d' % (clip['width'], clip['height']), '-r', str(int(clip['fps'] + 0.5)), '-pix_fmt', 'yuv420p', '-i', clip['yuv_file'], y4m_file],
-                stdout=devnull,
-                stderr=devnull
-            )
+            subprocess.check_call([
+                'ffmpeg', '-y', '-s',
+                '%dx%d' % (clip['width'], clip['height']), '-r',
+                str(int(clip['fps'] + 0.5)), '-pix_fmt', 'yuv420p', '-i',
+                clip['yuv_file'], y4m_file
+            ],
+                                  stdout=devnull,
+                                  stderr=devnull)
 
         clip['y4m_file'] = y4m_file
 
@@ -229,7 +232,8 @@ def decode_file(job, temp_dir, encoded_file):
     os.close(fd)
     with open(os.devnull, 'w') as devnull:
         if job['codec'] in ['av1', 'vp8', 'vp9']:
-            decoder = AOM_DEC_BIN if job['codec'] == 'av1' else VPX_DEC_BIN
+            decoder = binary_vars.AOM_DEC_BIN if job[
+                'codec'] == 'av1' else binary_vars.VPX_DEC_BIN
             subprocess.check_call([
                 decoder, '--i420',
                 '--codec=%s' % job['codec'], '-o', decoded_file, encoded_file,
@@ -239,24 +243,25 @@ def decode_file(job, temp_dir, encoded_file):
                                   stderr=devnull,
                                   encoding='utf-8')
         elif job['codec'] == 'h264':
-            subprocess.check_call([H264_DEC_BIN, encoded_file, decoded_file],
-                                  stdout=devnull,
-                                  stderr=devnull,
-                                  encoding='utf-8')
+            subprocess.check_call(
+                [binary_vars.H264_DEC_BIN, encoded_file, decoded_file],
+                stdout=devnull,
+                stderr=devnull,
+                encoding='utf-8')
             # TODO(pbos): Generate H264 framestats.
             framestats_file = None
     return (decoded_file, framestats_file)
 
 
 def add_framestats(results_dict, framestats_file, statstype):
-  with open(framestats_file) as csvfile:
-    reader = csv.DictReader(csvfile)
-    for row in reader:
-      for (metric, value) in row.items():
-        metric_key = 'frame-%s' % metric
-        if metric_key not in results_dict:
-          results_dict[metric_key] = []
-        results_dict[metric_key].append(statstype(value))
+    with open(framestats_file) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            for (metric, value) in row.items():
+                metric_key = 'frame-%s' % metric
+                if metric_key not in results_dict:
+                    results_dict[metric_key] = []
+                results_dict[metric_key].append(statstype(value))
 
 
 def generate_metrics(results_dict, job, temp_dir, encoded_file):
@@ -270,11 +275,12 @@ def generate_metrics(results_dict, job, temp_dir, encoded_file):
     (fd, metrics_framestats) = tempfile.mkstemp(dir=temp_dir, suffix=".csv")
     os.close(fd)
     ssim_results = subprocess.check_output([
-        TINY_SSIM_BIN, clip['yuv_file'], decoded_file,
+        binary_vars.TINY_SSIM_BIN, clip['yuv_file'], decoded_file,
         "%dx%d" % (results_dict['width'], results_dict['height']),
         str(temporal_skip), metrics_framestats
     ],
                                            encoding='utf-8').splitlines()
+
     metric_map = {
         'AvgPSNR': 'avg-psnr',
         'AvgPSNR-Y': 'avg-psnr-y',
@@ -306,7 +312,7 @@ def generate_metrics(results_dict, job, temp_dir, encoded_file):
 
     if args.enable_vmaf:
         vmaf_results = subprocess.check_output([
-            VMAF_BIN, 'yuv420p',
+            binary_vars.VMAF_BIN, 'yuv420p',
             str(results_dict['width']),
             str(results_dict['height']), clip['yuv_file'], decoded_file,
             '--out-fmt', 'json'
@@ -324,6 +330,7 @@ def generate_metrics(results_dict, job, temp_dir, encoded_file):
 
     spatial_divide = 2**(job['num_spatial_layers'] - 1 -
                          encoded_file['spatial-layer'])
+
     results_dict['layer-width'] = results_dict['width'] // spatial_divide
     results_dict['layer-height'] = results_dict['height'] // spatial_divide
 
@@ -452,9 +459,8 @@ def generate_jobs(args, temp_dir):
                         args.num_temporal_layers,
                 }
                 job_temp_dir = tempfile.mkdtemp(dir=temp_dir)
-                (command,
-                 encoded_files) = get_encoder_command(job['encoder'])(job,
-                                                                   job_temp_dir)
+                (command, encoded_files) = get_encoder_command(job['encoder'])(
+                    job, job_temp_dir)
                 command[0] = find_absolute_path(args.use_system_path,
                                                 command[0])
                 jobs.append((job, (command, encoded_files), job_temp_dir))
@@ -540,16 +546,16 @@ def main():
         return 0
 
     # Make sure commands for quality metrics are present.
-    find_absolute_path(False, TINY_SSIM_BIN)
+    find_absolute_path(False, binary_vars.TINY_SSIM_BIN)
     for (encoder, codec) in args.encoders:
         if codec in ['vp8', 'vp9']:
-            find_absolute_path(False, VPX_DEC_BIN)
+            find_absolute_path(False, binary_vars.VPX_DEC_BIN)
         elif codec == 'av1':
-            find_absolute_path(False, AOM_DEC_BIN)
+            find_absolute_path(False, binary_vars.AOM_DEC_BIN)
         elif codec == 'h264':
-            find_absolute_path(False, H264_DEC_BIN)
+            find_absolute_path(False, binary_vars.H264_DEC_BIN)
     if args.enable_vmaf:
-        find_absolute_path(False, VMAF_BIN)
+        find_absolute_path(False, binary_vars.VMAF_BIN)
 
     print("[0/%d] Running jobs..." % total_jobs)
 
