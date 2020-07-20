@@ -17,7 +17,7 @@ jobs:
             profile: minimal
             toolchain: stable
         - name : Install apt-get dependencies
-        - run: |
+          run: |
             sudo apt-get update
             sudo apt-get install -y gcc cmake yasm nasm wget mediainfo ffmpeg
         - run: |
