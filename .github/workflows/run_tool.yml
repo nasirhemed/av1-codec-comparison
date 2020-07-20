@@ -10,9 +10,12 @@ jobs:
         steps:
         - uses: actions/checkout@v2
         - uses: actions/setup-python@v2
-        - uses: actions-rs/toolchain@v1
           with:
             python-version: '3.x'
+        - uses: actions-rs/toolchain@v1
+          with:
+            profile: minimal
+            toolchain: stable
         - run: sudo apt-get install -y gcc cmake yasm nasm wget
         - run: |
             cd rtc-video-quality
