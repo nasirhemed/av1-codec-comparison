@@ -16,7 +16,7 @@ jobs:
           with:
             profile: minimal
             toolchain: stable
-        - run: sudo apt-get install -y gcc cmake yasm nasm wget
+        - run: sudo apt-get install -y gcc cmake yasm nasm wget mediainfo ffmpeg
         - run: |
             cd rtc-video-quality
             ./setup.sh && ./setup_aom.sh && ./setup_rav1e.sh && ./setup_svt-av1.sh
